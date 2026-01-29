@@ -32,24 +32,25 @@ def test_loan_history_is_closed():
     assert loan.is_closed is True
 
 def test_loan_history_invalid_format():
-    
-    with pytest.raises(ValueError, match="Дата займа должна быть в формате DD.MM.YYYY"):
+    with pytest.raises(Exception) as exc_info:
         Loan_history(
             amount=10000,
             loan_data="2023-01-01",  # Неправильный формат
             is_closed=True
         )
+    assert "Дата займа должна быть в формате DD.MM.YYYY" in str(exc_info.value)
 
 def test_loan_history_future_date():
     year_test = date.today().year + 1
     future_date = date.today().replace(year=year_test)
     
-    with pytest.raises(ValueError, match="Дата займа не может быть в будущем"):
+    with pytest.raises(Exception) as exc_info:
         Loan_history(
             amount=10000,
             loan_data=future_date.strftime("%d.%m.%Y"),
             is_closed=True
         )
+    assert "Дата займа не может быть в будущем" in str(exc_info.value)
 
 def test_user_create_birth_date():
    
@@ -81,25 +82,25 @@ def test_user_create_loan_history():
     assert len(user.loans_history) == 1
 
 def test_user_create_invalid_birth_date_format():
-   
-    with pytest.raises(ValueError, match="Дата рождения должна быть в формате DD.MM.YYYY"):
+    with pytest.raises(Exception) as exc_info:
         UserCreate(
             birth_date="1990-05-15",  # Неправильный формат
             phone_number="+79161234567",
             loans_history=[]
         )
-    
+    assert "Дата рождения должна быть в формате DD.MM.YYYY" in str(exc_info.value)
+
 def test_user_create_future_birth_date():
-   
     year_test = date.today().year + 1
     future_date = date.today().replace(year=year_test)
     
-    with pytest.raises(ValueError, match="Дата рождения не может быть в будущем"):
+    with pytest.raises(Exception) as exc_info:
         UserCreate(
             birth_date=future_date.strftime("%d.%m.%Y"),
             phone_number="+79161234567",
             loans_history=[]
         )
+    assert "Дата рождения не может быть в будущем" in str(exc_info.value)
 
     
 def test_is_under_18_adult():

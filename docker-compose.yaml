@@ -4,8 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile.app
     ports:
-      - "8000:8000"
+      - "8001:8000"
     restart: unless-stopped
+
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
 
   tests:
     build:
@@ -13,3 +17,6 @@ services:
       dockerfile: Dockerfile.tests
     depends_on:
       - app
+    environment:
+      - APP_HOST=app
+      - PYTHONUNBUFFERED=1

@@ -14,13 +14,16 @@ class Loan_history(BaseModel):
     @classmethod
     def validate_loan_date(cls, value) ->str:
         try:
-            
             loan_data = datetime.strptime(value, "%d.%m.%Y")
-            if loan_data.date()> date.today():
+            if loan_data.date() > date.today():
                 raise ValueError("Дата займа не может быть в будущем")
             return value
-        except ValueError:
-            raise ValueError("Дата займа должна быть в формате DD.MM.YYYY")
+        except ValueError as e:
+            error_msg = str(e)
+            if "Дата займа не может быть в будущем" in error_msg:
+                raise ValueError("Дата займа не может быть в будущем") from e
+            else:
+                raise ValueError("Дата займа должна быть в формате DD.MM.YYYY")
 
 class UserCreate(BaseModel):
     birth_date: str
@@ -31,13 +34,16 @@ class UserCreate(BaseModel):
     @classmethod
     def validate_birth_date(cls, value) -> str:
         try:
-            
             birth_date = datetime.strptime(value, "%d.%m.%Y")
             if birth_date.date() > date.today():
                 raise ValueError("Дата рождения не может быть в будущем")
             return value
-        except ValueError:
-            raise ValueError("Дата рождения должна быть в формате DD.MM.YYYY")
+        except ValueError as e:
+            error_msg = str(e)
+            if "Дата рождения не может быть в будущем" in error_msg:
+                raise ValueError("Дата рождения не может быть в будущем") from e
+            else:
+                raise ValueError("Дата рождения должна быть в формате DD.MM.YYYY")
 
 
     def is_under_18(self)->bool:
@@ -51,7 +57,7 @@ class UserCreate(BaseModel):
     def is_not_rus_phone(self) ->bool:
         phone_num = self.phone_number
 
-        if not phone_num:
+        if not phone_num  or len(phone_num) < 11:
             return True
         
         phone_num_0 = phone_num[0]
@@ -66,10 +72,10 @@ class UserCreate(BaseModel):
         else:
             return True
     def has_open_loans(self) ->bool:
-         for loan in self.loans_history:
+        for loan in self.loans_history:
             if not loan.is_closed:
                 return True
-            return False
+        return False
 
 app = FastAPI(title="antifraud service")
 
