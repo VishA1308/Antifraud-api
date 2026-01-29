@@ -2,6 +2,7 @@ from pydantic import BaseModel,field_validator,ValidationError
 from datetime import datetime,date
 from dateutil.relativedelta import relativedelta
 from fastapi import FastAPI, HTTPException
+import redis.asyncio as redis
 import json
 
 
@@ -54,10 +55,17 @@ class UserCreate(BaseModel):
             return True
         else:
             return False
-    def is_not_rus_phone(self) ->bool:
+    def is_not_rus_phone(self) -> bool:
         phone_num = self.phone_number
-
-        if not phone_num  or len(phone_num) < 11:
+        clean_text = ""  
+        
+        for char in phone_num:
+            if char.isdigit() or char == '+':
+                clean_text += char
+        
+        phone_num = clean_text
+        
+        if not phone_num or len(phone_num) < 11:
             return True
         
         phone_num_0 = phone_num[0]
@@ -78,18 +86,29 @@ class UserCreate(BaseModel):
         return False
 
 app = FastAPI(title="antifraud service")
+redis_client = redis.Redis(host='redis')
 
 @app.post("/users/",status_code=201)
-def create_user(user:UserCreate):
-    errors = []
-    res = True
-    if user.is_under_18() == True:
-        errors.append("Пользователь младше 18")
-        res = False
-    if user.is_not_rus_phone() == True:
-        errors.append("Не российский номер")
-        res = False
-    if user.has_open_loans() == True:
-        errors.append("Займ не закрыт")
-        res = False
-    return {"stop_factors": errors, "result": res}
+async def create_user(user:UserCreate):
+
+    user_key = f"user:{user.phone_number}:{user.birth_date}"
+    result = await redis_client.get(user_key)
+    if result:
+        return json.loads(result)
+    else:
+        errors = []
+        res = True
+        if user.is_under_18() == True:
+            errors.append("Пользователь младше 18")
+            res = False
+        if user.is_not_rus_phone() == True:
+            errors.append("Не российский номер")
+            res = False
+        if user.has_open_loans() == True:
+            errors.append("Займ не закрыт")
+            res = False
+        result = {"stop_factors": errors, "result": res}
+        await redis_client.set(user_key, json.dumps(result))
+
+        return result
+    

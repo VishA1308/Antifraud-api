@@ -10,6 +10,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
+      
+  redis:
+    image: redis:8.4.0
+    ports:
+      - "6379"
 
   tests:
     build:
