@@ -1,8 +1,11 @@
 import pytest
-from main import UserCreate, Loan_history
+import sys
+import os
+sys.path.insert(0, '/app/src')
+
+from antifraud_service.models import UserCreate, Loan_history
 from datetime import date
 import json
-
 def test_loan_history_amount():
     
     loan = Loan_history(
