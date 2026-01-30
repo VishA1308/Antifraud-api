@@ -27,6 +27,20 @@ check_duration = Histogram(
     'antifraud_check_duration_seconds',
     'Time to check user'
 )
+# 5. Количество запросов с разбивкой по HTTP-статусам ответов
+http_requests_by_status = Counter(
+    'http_requests_by_status_total',
+    'HTTP requests by status code',
+    ['status_code']
+)
+
+# 6. Время ответа на запрос с разбивкой по HTTP-статусам ответов
+http_response_time_by_status = Histogram(
+    'http_response_time_by_status_seconds',
+    'HTTP response time by status code',
+    ['status_code'],
+    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
+)
 
 def get_metrics():
     return Response(generate_latest(), media_type='text/plain')

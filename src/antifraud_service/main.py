@@ -1,33 +1,48 @@
 from fastapi import FastAPI
 from .models import UserCreate
 from .redis_client import redis_client
-from .metrics import requests_total, user_checks_total, cache_hits, check_duration, get_metrics
+from .metrics import (
+    requests_total,
+    user_checks_total,
+    cache_hits,
+    check_duration,
+    http_requests_by_status,          # <-- ДОБАВЬ
+    http_response_time_by_status,     # <-- ДОБАВЬ
+    get_metrics
+)
 import time
 
 app = FastAPI(title="antifraud service")
 
 @app.post("/users/", status_code=201)
 async def create_user(user: UserCreate):
-    # Начинаем замер времени проверки
-    start_time = time.time()
+    # Начинаем замер ВСЕГО времени запроса
+    total_start_time = time.time()
     
-    # 1. Пробуем взять из Redis кэша
+    # Начинаем замер времени проверки
+    check_start_time = time.time()
+    
+    # Проверяем кэш
     cached = await redis_client.get_user_result(user.phone_number, user.birth_date)
     if cached:
-        # Увеличиваем счетчик кэш-попаданий
         cache_hits.labels(type="hit").inc()
-        # Увеличиваем счетчик проверок (результат из кэша)
         user_checks_total.labels(result="cached").inc()
-        # Замеряем время (оно будет маленьким)
-        check_duration.observe(time.time() - start_time)
-        # Увеличиваем счетчик HTTP запросов
+        
+        check_duration.observe(time.time() - check_start_time)
+        
+        # НОВОЕ: Время всего запроса
+        total_duration = time.time() - total_start_time
+        http_response_time_by_status.labels(status_code=201).observe(total_duration)
+        
+        # НОВОЕ: Счетчик запросов по статусу
+        http_requests_by_status.labels(status_code=201).inc()
+        
         requests_total.labels(method="POST", endpoint="/users/", status=201).inc()
         return cached
     
-    # Если не в кэше - увеличиваем счетчик кэш-промахов
     cache_hits.labels(type="miss").inc()
     
-    # 2. Выполняем проверки
+    # Выполняем проверки
     errors = []
     
     if user.is_under_18():
@@ -39,31 +54,33 @@ async def create_user(user: UserCreate):
     if user.has_open_loans():
         errors.append("Займ не закрыт")
     
-    # 3. Формируем результат
     result = {
         "stop_factors": errors,
-        "result": len(errors) == 0  # True если ошибок нет
+        "result": len(errors) == 0
     }
     
-    # 4. Сохраняем в Redis
+    # Сохраняем в кэш
     await redis_client.set_user_result(user.phone_number, user.birth_date, result)
     
-    # 5. Обновляем метрики
-    duration = time.time() - start_time
-    check_duration.observe(duration)
-    
-    # Считаем результат проверки
+    # Обновляем бизнес-метрики
     if len(errors) == 0:
         user_checks_total.labels(result="approved").inc()
     else:
         user_checks_total.labels(result="rejected").inc()
     
-    # Считаем HTTP запрос
+    check_duration.observe(time.time() - check_start_time)
+    
+    # НОВОЕ: Время всего запроса
+    total_duration = time.time() - total_start_time
+    http_response_time_by_status.labels(status_code=201).observe(total_duration)
+    
+    # НОВОЕ: Счетчик запросов по статусу
+    http_requests_by_status.labels(status_code=201).inc()
+    
     requests_total.labels(method="POST", endpoint="/users/", status=201).inc()
     
     return result
 
 @app.get("/metrics")
 async def metrics():
-    """Отдает метрики для Prometheus"""
     return get_metrics()
