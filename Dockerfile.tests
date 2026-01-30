@@ -8,7 +8,6 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock ./
 
-# Для тестов тоже используем китайское зеркало
 RUN uv sync \
     --index-url https://pypi.tuna.tsinghua.edu.cn/simple \
     --allow-insecure-host pypi.tuna.tsinghua.edu.cn \

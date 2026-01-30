@@ -1,17 +1,17 @@
-from pydantic import BaseModel,field_validator,ValidationError
-from datetime import datetime,date
+from pydantic import BaseModel, field_validator, ValidationError
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-
 
 
 class Loan_history(BaseModel):
     amount: int
-    loan_data: str
-    is_closed: bool = False
+    loan_data: str  # Дата займа в формате DD.MM.YYYY
+    is_closed: bool = False  # Статус закрытия займа
 
     @field_validator('loan_data')
     @classmethod
-    def validate_loan_date(cls, value) ->str:
+    def validate_loan_date(cls, value) -> str:
+        """Валидация даты займа с проверкой формата и корректности"""
         try:
             loan_data = datetime.strptime(value, "%d.%m.%Y")
             if loan_data.date() > date.today():
@@ -20,18 +20,22 @@ class Loan_history(BaseModel):
         except ValueError as e:
             error_msg = str(e)
             if "Дата займа не может быть в будущем" in error_msg:
+                
                 raise ValueError("Дата займа не может быть в будущем") from e
             else:
+                
                 raise ValueError("Дата займа должна быть в формате DD.MM.YYYY")
 
+
 class UserCreate(BaseModel):
-    birth_date: str
-    phone_number: str
-    loans_history:list[Loan_history] = []
+    birth_date: str  # Дата рождения в формате DD.MM.YYYY
+    phone_number: str  # Номер телефона
+    loans_history: list[Loan_history] = []  # История займов 
 
     @field_validator('birth_date')
     @classmethod
     def validate_birth_date(cls, value) -> str:
+        """Валидация даты рождения с проверкой формата и корректности"""
         try:
             birth_date = datetime.strptime(value, "%d.%m.%Y")
             if birth_date.date() > date.today():
@@ -44,19 +48,22 @@ class UserCreate(BaseModel):
             else:
                 raise ValueError("Дата рождения должна быть в формате DD.MM.YYYY")
 
-
-    def is_under_18(self)->bool:
+    def is_under_18(self) -> bool:
+        #Проверка возраста пользователя 
         birth_date = datetime.strptime(self.birth_date, "%d.%m.%Y").date()
         date_now = date.today()
-        diff = relativedelta(date_now,birth_date)
+        diff = relativedelta(date_now, birth_date)
         if diff.years < 18:
             return True
         else:
             return False
+
     def is_not_rus_phone(self) -> bool:
-        phone_num = self.phone_number
-        clean_text = ""  
         
+        phone_num = self.phone_number
+        clean_text = ""
+        
+        # Очистка номера от лишних символов
         for char in phone_num:
             if char.isdigit() or char == '+':
                 clean_text += char
@@ -68,16 +75,20 @@ class UserCreate(BaseModel):
         
         phone_num_0 = phone_num[0]
         if phone_num_0 == '+':
+            # Международный формат +7
             phone_num_1 = phone_num[1]
             if phone_num_1 == '7':
-                return False
+                return False  # Российский номер
             else:
-                return True
+                return True  # Не российский
         elif phone_num_0 == '8':
+            # Российский формат с 8
             return False
         else:
             return True
-    def has_open_loans(self) ->bool:
+
+    def has_open_loans(self) -> bool:
+        # Проверка наличия открытых займов
         for loan in self.loans_history:
             if not loan.is_closed:
                 return True
