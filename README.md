@@ -36,17 +36,19 @@ sudo docker-compose ps
 
 # Откройте документацию API
 http://localhost:8001/docs
-
+```
 ### Makefile для Linux
+```
 make build
-
- API Endpoints
+```
+## API Endpoints
 
 # POST /users/ - Проверка пользователя
 
 Проверяет пользователя на стоп-факторы и возвращает результат.
 
 Request:
+```
 json
 
 {
@@ -60,11 +62,13 @@ json
     }
   ]
 }
-
+```
 Response:
+```
 json
 
 {
   "stop_factors": [],
   "result": true
 }
+```
