@@ -17,4 +17,54 @@
 - **Анализ займов** - обнаружение открытых займов  
 - **Кэширование** - результаты хранятся в Redis  
 - **Автотесты** - проверка правильности функций 
-- **Docker готовность** - полная контейнеризация  
+- **Docker готовность** - полная контейнеризация
+- 
+## Старт
+
+### Через Docker Compose
+
+```bash
+# Клонируйте репозиторий
+git clone <repository-url>
+cd antifraud-api
+
+# Запустите все сервисы
+sudo docker-compose up -d
+
+# Проверьте статус
+sudo docker-compose ps
+
+# Откройте документацию API
+http://localhost:8001/docs
+
+### Makefile для Linux
+make build
+
+ API Endpoints
+
+# POST /users/ - Проверка пользователя
+
+Проверяет пользователя на стоп-факторы и возвращает результат.
+
+Request:
+json
+
+{
+  "birth_date": "15.05.1985",
+  "phone_number": "+79161234567",
+  "loans_history": [
+    {
+      "amount": 10000,
+      "loan_data": "01.01.2023",
+      "is_closed": true
+    }
+  ]
+}
+
+Response:
+json
+
+{
+  "stop_factors": [],
+  "result": true
+}
